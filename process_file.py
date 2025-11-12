@@ -80,7 +80,7 @@ def remove_skip_api(code: str) -> str:
 
 
 def remove_seed_setting(code: str) -> str:
-    return re.sub("torch\.manual_seed\(\S+\)", "", code)
+    return re.sub(r"torch\.manual_seed\(\S+\)", "", code)
 
 
 def clean_raw_code(original: str) -> str:
@@ -149,7 +149,7 @@ def clean_code(
     cuda=False,
     fix_syntax=True,
     fix_session=True,
-    remove_func=True,
+    remove_func=False,
 ) -> str:
     if remove_func:
         # do not consider code with has function declarations
@@ -215,7 +215,7 @@ def get_initial_programs(
                 api_call = api.split("/")[-1].split(".")[-1]
                 # Keep the programs with functions because they help to cover APIs.
                 original = clean_code(
-                    f.read(), prints_and_imports=True, comment=True, cuda=True
+                    f.read(), prints_and_imports=False, comment=True, cuda=True
                 )
                 infill = SnippetInfill(
                     mask_identifier=mask_identifier,
@@ -321,7 +321,7 @@ def clean_programs(tasks, args) -> dict:
         # Note that in validate seed we keep functions.
         code = clean_code(
             original_code,
-            prints_and_imports=True,
+            prints_and_imports=False,
             comment=True,
             cuda=True,
             remove_func=False,

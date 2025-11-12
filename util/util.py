@@ -23,6 +23,13 @@ try:
 except Exception as e:
     hasTf = False
 
+hasJax = True
+try:
+    import jax
+    import jax.numpy as jnp
+except Exception as e:
+    hasJax = False
+
 
 class ExecutionStatus(IntEnum):
     SUCCESS = auto()
@@ -41,6 +48,11 @@ def set_seed(seed: int):
         torch.cuda.manual_seed_all(seed)
     if hasTf:
         tf.random.set_seed(seed)
+    if hasJax:
+        from jax import random as jax_random
+
+        key = jax_random.PRNGKey(seed)
+        jax_random.split(key)
 
 
 def get_unified_diff(source, changed_source):
@@ -247,6 +259,10 @@ def load_apis(library, sample=False, apilist_fn=None):
             with open("data/torch_apis_100sample.txt", "r") as f:
                 apis = f.read().splitlines()
             return apis
+        elif library == "jax":
+            with open("data/jax_apis.txt", "r") as f:
+                apis = f.read().splitlines()
+            return apis
 
     if library == "tf":
         with open("data/tf_apis.txt", "r") as f:
@@ -254,6 +270,10 @@ def load_apis(library, sample=False, apilist_fn=None):
         return apis
     elif library == "torch":
         with open("data/torch_apis.txt", "r") as f:
+            apis = f.read().splitlines()
+        return apis
+    elif library == "jax":
+        with open("data/jax_apis.txt", "r") as f:
             apis = f.read().splitlines()
         return apis
 
@@ -266,6 +286,11 @@ def load_api_symbols(library):
         return api_call_list, apis
     elif library == "torch":
         with open("data/torch_apis.txt", "r") as f:
+            apis = f.read().splitlines()
+        api_call_list = [api.rsplit(".", 1)[-1] for api in apis]
+        return api_call_list, apis
+    elif library == "jax":
+        with open("data/jax_apis.txt", "r") as f:
             apis = f.read().splitlines()
         api_call_list = [api.rsplit(".", 1)[-1] for api in apis]
         return api_call_list, apis
@@ -307,7 +332,7 @@ def run_cmd(
     stdout=subprocess.PIPE,
     stderr=subprocess.PIPE,
     shell=False,
-) -> (ExecutionStatus, str):
+) -> Tuple[ExecutionStatus, str]:
     try:
         output = subprocess.run(
             cmd_args, stdout=stdout, stderr=stderr, timeout=timeout, shell=shell
@@ -374,6 +399,8 @@ def wrap_code_with_device(g_code, library, device):
     write_code = ""
     if library == "torch":
         write_code += "import torch\n"
+    elif library == "jax":
+        write_code += "import jax\nimport jax.numpy as jnp\n"
     elif library == "tf":
         write_code += "import os\nos.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'\n"
         if device == "cpu":

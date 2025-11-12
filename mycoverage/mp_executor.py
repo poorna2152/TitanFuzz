@@ -5,6 +5,7 @@ import multiprocessing as mp
 import os
 import sys
 import time
+from typing import Tuple
 
 from mycoverage import tracer
 from util.util import ExecutionStatus, wrap_code_with_device
@@ -46,6 +47,13 @@ def init_test_executor(args, cov=False):
             cov_executor = TensorFlowCoverageExecutor(**kwargs)
         if test_executor is None:
             test_executor = TensorFlowExecutor(**kwargs)
+
+    if args.library == "jax":
+        # kwargs["cpu"] = RUN_CPU_MODE
+        if cov and (cov_executor is None):
+            cov_executor = JAXCoverageExecutor(**kwargs)
+        if test_executor is None:
+            test_executor = JAXExecutor(**kwargs)
 
 
 def kill_executors():
@@ -218,6 +226,42 @@ def worker_torch(target, child_conn, close_fd_mask):
             child_conn.send_bytes("ok".encode("utf-8"))
 
 
+def worker_jax(target, child_conn, close_fd_mask):
+
+    import jax
+    import jax.numpy as jnp
+
+    logging.captureWarnings(True)
+    logging.getLogger().setLevel(logging.CRITICAL)
+    f = open(os.devnull, "w")
+    if close_fd_mask & 1:
+        sys.stdout = f
+    if close_fd_mask & 2:
+        sys.stderr = f
+
+    while True:
+        try:
+            buf = child_conn.recv_bytes()
+        except EOFError:
+            # child does not respond, probably crash
+            message = "Crash: EOFError"
+            try:
+                child_conn.send_bytes(message.encode("utf-8"))
+            except BrokenPipeError:
+                break
+        try:
+            execGlobals = {"jax": jax, "jnp": jnp}
+            msg = target(buf, execGlobals)
+        except Exception as e:
+            print("Exception: %r\n" % (e,))
+            logging.exception(e)
+            message = {"exception": type(e).__name__, "msg": str(e)}
+            message = json.dumps(message)
+            child_conn.send_bytes(message.encode("utf-8"))
+        else:
+            child_conn.send_bytes("ok".encode("utf-8"))
+
+
 class Executor:
     def __init__(
         self,
@@ -243,7 +287,7 @@ class Executor:
             os.path.dirname(os.path.realpath(__file__)), "test_programs"
         )
 
-    def run_test(self, filename) -> (str, bool):
+    def run_test(self, filename) -> Tuple[str, bool]:
         """
         Returns execution status message and if it is valid
         """
@@ -318,7 +362,7 @@ class CoverageExecutor(Executor):
         self.prev_coverage = 0
         print("Init cov executor")
 
-    def run_test(self, filename) -> (str, bool):
+    def run_test(self, filename) -> Tuple[str, bool]:
         """
         Returns a string (execution status) and a boolean (if coverage increases).
 
@@ -420,9 +464,24 @@ class PyTorchCoverageExecutor(CoverageExecutor):
         self.check_filename = os.path.join(self._test_dir, "check_torch_state.py")
 
 
+# Define JAXExecutor and JAXCoverageExecutor classes
+class JAXExecutor(Executor):
+    def __init__(self, worker=worker_jax, single_test_timeout=10, **kwargs):
+        super().__init__(worker, single_test_timeout, **kwargs)
+        self.check_filename = os.path.join(self._test_dir, "check_jax_state.py")
+
+
+class JAXCoverageExecutor(CoverageExecutor):
+    def __init__(self, worker=worker_jax, single_test_timeout=10, **kwargs):
+        super().__init__(worker, single_test_timeout, **kwargs)
+        assert tracer.trace_library is None
+        tracer.trace_library = "jax"
+        self.check_filename = os.path.join(self._test_dir, "check_jax_state.py")
+
+
 def coverate_run_status_mp(
     g_code, library, cov_executor, device="cpu"
-) -> (ExecutionStatus, bool):
+) -> Tuple[ExecutionStatus, bool]:
     """
     Returns status and whether has new coverage
     """

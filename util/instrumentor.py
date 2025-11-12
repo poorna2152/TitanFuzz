@@ -295,11 +295,13 @@ class SnippetInfill(ast.NodeTransformer):
                 )
             )
         elif self.replace_type == "prefix":
-            infill_code = (
-                "import torch\n"
-                if self.library == "torch"
-                else "import tensorflow as tf\n"
-            )
+            infill_code = ""
+            if self.library == "torch":
+                infill_code = "import torch\n"
+            elif self.library == "tensorflow":
+                infill_code = "import tensorflow as tf\n"
+            elif self.library == "jax":
+                infill_code = "import jax\n import jax.numpy as jnp\n"
             infill_code += "import numpy as np\n"
             end_replace = random.randint(0, self.line_no - 1)
             start_replace = random.randint(0, end_replace)
@@ -332,11 +334,13 @@ class SnippetInfill(ast.NodeTransformer):
                     "'{}'".format(self.mask_identifier), self.mask_identifier.format(1)
                 )
             )
-            infill_code = (
-                "import torch\n"
-                if self.library == "torch"
-                else "import tensorflow as tf\n"
-            )
+            infill_code = ""
+            if self.library == "torch":
+                infill_code = "import torch\n"
+            elif self.library == "tensorflow":
+                infill_code = "import tensorflow as tf\n"
+            elif self.library == "jax":
+                infill_code = "import jax\n import jax.numpy as jnp\n"
             infill_code += "import numpy as np\n"
             end_replace = random.randint(0, self.line_no - 1)
             start_replace = random.randint(0, end_replace)
@@ -567,3 +571,24 @@ x = np.random(torch.clone(input))"""
     print(UniqueFinder("torch").count(code))
     print(DepthFinder("torch").max_depth(code))
     print(SearchAllCall().search_from_code(code))
+
+    # JAX-specific tests
+    jax_code = """input = jax.random.normal(key, (3,))
+input = jax.numpy.clip(input, a_min=0.0, a_max=1.0)"""
+    print(UniqueFinder("jax").count(jax_code))
+    jax_code = """input = jax.random.normal(key, (3,))
+input = jax.numpy.clip(input, a_min=0.0, a_max=1.0)
+x = jax.numpy.exp(input, min=0.0, max=1.0)
+x = jax.numpy.exp(x, min=0.0, max=1.0)
+y = jax.numpy.exp(x, min=0.0, max=1.0)
+input_tensor = input.clone().set(1)
+x = np.random(torch.clone(input))"""
+    print(UniqueFinder("jax").count(jax_code))
+    print(DepthFinder("jax").max_depth(jax_code))
+    print(SearchAllCall().search_from_code(jax_code))
+
+
+# Add JAX-specific mutation handling
+class JaxKeywordFinder(MultiKeywordFinder):
+    def __init__(self):
+        super().__init__(lib_prefix="jax")

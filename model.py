@@ -38,7 +38,7 @@ class SpanLM(object):
         print("Max length: {}".format(self.max_length))
         self.model = self.model.to(self.device)
         self.tokenizer = AutoTokenizer.from_pretrained(pretrained)
-        self.tokenizer.pad_token = 0
+        self.tokenizer.pad_token = "0"
         self.tokenizer.padding_side = "left"
         self.batch_size = batch_size
         print("Batch size: {}".format(batch_size))

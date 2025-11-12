@@ -90,7 +90,7 @@ def generate_loop(
 
             for output in outputs:
                 output = clean_code(
-                    output, prints_and_imports=True, comment=True, cuda=True
+                    output, prints_and_imports=False, comment=True, cuda=True
                 )
                 output = dead_code_elim(output, api)
                 num_generated += 1
@@ -390,7 +390,7 @@ def main():
     parser.add_argument("--close_fd_mask", type=int, default=1)
 
     args = parser.parse_args()
-    if args.library not in ["torch", "tf"]:
+    if args.library not in ["torch", "tf", "jax"]:
         raise NotImplementedError
 
     if args.api == "all":

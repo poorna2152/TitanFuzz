@@ -3,10 +3,13 @@ import json
 import os
 import subprocess
 import time
+from typing import Tuple
 
 os.environ["TF_CPP_MIN_LOG_LEVEL"] = "3"
 
 import numpy as np
+import jax
+import jax.numpy as jnp
 
 from mycoverage import mp_executor
 from util.util import (
@@ -21,7 +24,7 @@ CURRENT_TIME = time.time()
 
 def validate_status(
     code, library, validate_mode="process", device="cpu", api=None, test_executor=None
-) -> (ExecutionStatus, str):
+) -> Tuple[ExecutionStatus, str]:
     code = wrap_code_with_mock(code, api, library, device)
     if validate_mode == "process":
         return validate_status_process(code, library, device=device)
@@ -33,7 +36,7 @@ def validate_status(
         )
 
 
-def validate_status_exec(g_code, library, device="gpu") -> (ExecutionStatus, str):
+def validate_status_exec(g_code, library, device="gpu") -> Tuple[ExecutionStatus, str]:
     """Executing code via exec.
 
     Note that this is dangerous.
@@ -47,9 +50,12 @@ def validate_status_exec(g_code, library, device="gpu") -> (ExecutionStatus, str
             import tensorflow as tf
 
             execGlobals = {"tf": tf, "np": np}
+        elif library == "jax":
+            import jax
+            import jax.numpy as jnp
+            execGlobals = {"jax": jax, "jnp": jnp, "np": np}
         else:
             import torch
-
             execGlobals = {"torch": torch, "np": np}
         exec(write_code, execGlobals)
     except Exception as e:
@@ -63,7 +69,7 @@ def validate_status_exec(g_code, library, device="gpu") -> (ExecutionStatus, str
 
 def validate_status_mp(
     g_code, library, test_executor, device="cpu"
-) -> (ExecutionStatus, str):
+) -> Tuple[ExecutionStatus, str]:
     CURRENT_TIME = time.time()
     tmp_filename = "/tmp/tmp{}.py".format(CURRENT_TIME)
     write_code = wrap_code_with_device(g_code, library, device)
@@ -95,7 +101,7 @@ def validate_status_mp(
 
 def validate_status_process(
     g_code, library, python="python", device="cpu", verbose=False
-) -> (ExecutionStatus, str):
+) -> Tuple[ExecutionStatus, str]:
     write_code = wrap_code_with_device(g_code, library, device)
     with open("/tmp/tmp{}.py".format(CURRENT_TIME), "w") as f:
         f.write(write_code)
@@ -109,7 +115,7 @@ def validate_status_process(
 
 def validate_status_docker(
     g_code, library, device="cpu", mount=True
-) -> (ExecutionStatus, str):
+) -> Tuple[ExecutionStatus, str]:
     write_code = wrap_code_with_device(g_code, library, device)
     with open("/tmp/tmp{}.py".format(CURRENT_TIME), "w") as f:
         f.write(write_code)
@@ -131,6 +137,8 @@ def validate(g_code, library):
             f.write("import torch\n")
         elif library == "tf":
             f.write("import tensorflow as tf\n")
+        elif library == "jax":
+            f.write("import jax\n import jax.numpy as jnp\n")
         f.write("import numpy as np\n")
         f.write(g_code)
     try:
