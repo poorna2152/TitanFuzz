@@ -9,7 +9,6 @@ import time
 from model import SpanLM
 from mycoverage import mp_executor
 from process_file import clean_code, get_initial_programs
-from util.clean_code import dead_code_elim
 from util.instrumentor import SnippetInfill
 from util.Logger import Logger
 from util.Seed_pool import GA, GAR, GA_Coverage, GA_Random, GAR_depth
@@ -92,7 +91,6 @@ def generate_loop(
                 output = clean_code(
                     output, prints_and_imports=False, comment=True, cuda=True
                 )
-                output = dead_code_elim(output, api)
                 num_generated += 1
                 if output in total_outputs:
                     num_duplicated += 1

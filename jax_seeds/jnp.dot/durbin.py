@@ -1,10 +1,7 @@
 import jax
 import jax.numpy as jnp
-from jax import export
-from jax._src.interpreters import mlir as jax_mlir
-from jax._src.lib.mlir import ir
-import json
-from pathlib import Path
+
+from pyConvertUtils.utils import generate_stablehlo_and_export_metadata
 
 # Vector size
 N = 256
@@ -28,36 +25,4 @@ def durbin(r):
         y = y.at[k].set(alpha)
     return y
 
-def generate_metadata(*args, func=None):
-    args_meta = []
-    for x in args:
-        shape = list(x.shape)
-        dtype = "matrix" if len(shape) > 1 else "vector"
-        args_meta.append({"type": dtype, "shape": shape})
-
-    metadata = {"args": args_meta}
-
-    # --- Calculate output shape using jax.eval_shape ---
-    if func is not None:
-        output_shape_dtype = jax.eval_shape(func, *args)
-        metadata["output"] = {
-            "type": "matrix" if len(output_shape_dtype.shape) > 1 else "vector",
-            "shape": list(output_shape_dtype.shape),
-            "type": "matrix" if len(output_shape_dtype.shape) > 1 else "vector"
-        }
-    
-    filename = Path(__file__).name.replace(".py", "")
-    pathname = filename + "/" + filename + ".json"
-    with open(pathname, "w") as f:
-        json.dump(metadata, f, indent=2)
-
-    return metadata
-
-generate_metadata(r, func=durbin)
-# Export to StableHLO
-input_shapes = [
-    jax.ShapeDtypeStruct((N,), jnp.float32),
-]
-
-stablehlo_durbin = export.export(durbin)(*input_shapes).mlir_module()
-print(stablehlo_durbin)
+generate_stablehlo_and_export_metadata(durbin, r)

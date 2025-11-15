@@ -1,8 +1,7 @@
 import jax
 import jax.numpy as jnp
-from jax import export
-from jax._src.interpreters import mlir as jax_mlir
-from jax._src.lib.mlir import ir
+
+from pyConvertUtils.utils import generate_stablehlo_and_export_metadata
 
 # Grid size
 N = 512
@@ -23,10 +22,4 @@ def adi(u):
         u = u.at[1:-1, 1:-1].set(u_new[1:-1, 1:-1])
     return u
 
-# Export to StableHLO
-input_shapes = [
-    jax.ShapeDtypeStruct((N, N), jnp.float32),
-]
-
-stablehlo_adi = export.export(adi)(*input_shapes).mlir_module()
-print(stablehlo_adi)
+generate_stablehlo_and_export_metadata(adi, u)
