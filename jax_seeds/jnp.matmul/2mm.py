@@ -3,6 +3,8 @@ import jax.numpy as jnp
 from jax import export
 from jax._src.interpreters import mlir as jax_mlir
 from jax._src.lib.mlir import ir
+import json
+from pathlib import Path
 
 # Matrix sizes
 NI, NJ, NK, NL = 512, 512, 512, 512
