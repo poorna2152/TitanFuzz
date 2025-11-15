@@ -167,8 +167,6 @@ def clean_code(
         code = remove_prints_and_imports(code)
     if comment:
         code = remove_comments(code)
-    if cuda:
-        code = remove_cuda(code)
     # Fix syntax error
     if fix_syntax:
         code = syntax_fix_remove_last_line(code)
