@@ -3,6 +3,8 @@ import jax.numpy as jnp
 from jax import export
 from jax._src.interpreters import mlir as jax_mlir
 from jax._src.lib.mlir import ir
+import json
+from pathlib import Path
 
 # Matrix size
 N = 512
@@ -20,23 +22,45 @@ x = jnp.zeros((N,), dtype=jnp.float32)
 w = jnp.zeros((N,), dtype=jnp.float32)
 
 @jax.jit
-def gemver(A, u1, u2, v1, v2, y, z):
-    """Performs the gemver kernel."""
-    A = A + jnp.outer(u1, v1) + jnp.outer(u2, v2)
-    x = x + jnp.matmul(A, y)
-    w = w + jnp.matmul(A.T, z)
-    return x, w
+def gemver(A, u1, v1):
+    """Gemver kernel with 3 arguments, y calculated inside."""
+    A = A + jnp.outer(u1, v1)
+    # Calculate y as a vector of ones (can be changed as needed)
+    y = jnp.ones(A.shape[0], dtype=A.dtype)
+    x = jnp.matmul(A, y)
+    return x
 
-# Export to StableHLO
 input_shapes = [
     jax.ShapeDtypeStruct((N, N), jnp.float32),
-    jax.ShapeDtypeStruct((N,), jnp.float32),
-    jax.ShapeDtypeStruct((N,), jnp.float32),
-    jax.ShapeDtypeStruct((N,), jnp.float32),
-    jax.ShapeDtypeStruct((N,), jnp.float32),
     jax.ShapeDtypeStruct((N,), jnp.float32),
     jax.ShapeDtypeStruct((N,), jnp.float32),
 ]
 
 stablehlo_gemver = export.export(gemver)(*input_shapes).mlir_module()
 print(stablehlo_gemver)
+
+def generate_metadata(*args, func=None):
+    args_meta = []
+    for x in args:
+        shape = list(x.shape)
+        dtype = "matrix" if len(shape) > 1 else "vector"
+        args_meta.append({"type": dtype, "shape": shape})
+
+    metadata = {"args": args_meta}
+
+    # --- Calculate output shape using jax.eval_shape ---
+    if func is not None:
+        output_shape_dtype = jax.eval_shape(func, *args)
+        metadata["output"] = {
+            "type": "matrix" if len(output_shape_dtype.shape) > 1 else "vector",
+            "shape": list(output_shape_dtype.shape)
+        }
+    
+    filename = Path(__file__).name.replace(".py", "")
+    pathname = filename + "/" + filename + ".json"
+    with open(pathname, "w") as f:
+        json.dump(metadata, f, indent=2)
+
+    return metadata
+
+generate_metadata(A, u1, v1, func=gemver)

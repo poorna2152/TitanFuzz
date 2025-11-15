@@ -6,34 +6,32 @@ from jax._src.lib.mlir import ir
 import json
 from pathlib import Path
 
-# Matrix size
-N = 512
+# Matrix sizes
+M, N = 512, 512
 
 # Initialize matrix and vectors
+
 key = jax.random.PRNGKey(0)
-A = jax.random.uniform(key, (N, N), dtype=jnp.float32)
-y1 = jax.random.uniform(key, (N,), dtype=jnp.float32)
-y2 = jax.random.uniform(key, (N,), dtype=jnp.float32)
+A = jax.random.uniform(key, (M, N), dtype=jnp.float32)
+p = jax.random.uniform(key, (N,), dtype=jnp.float32)
+r = jax.random.uniform(key, (M,), dtype=jnp.float32)
 
 @jax.jit
-def mvt(A, y1, y2):
-    """Performs the mvt kernel."""
-    x1 = jnp.zeros((N,), dtype=jnp.float32)
-    x2 = jnp.zeros((N,), dtype=jnp.float32)
-    x1 = x1 + jnp.matmul(jnp.transpose(A), y1)
-    x2 = x2 + jnp.matmul(A, y2)
-    x = x1 + x2
-    return x
+def bicg(A, p, r):
+    q = jnp.matmul(A, p)
+    s = jnp.matmul(A.T, r)
+    k = q + s
+    return k
 
 # Export to StableHLO
 input_shapes = [
-    jax.ShapeDtypeStruct((N, N), jnp.float32),
+    jax.ShapeDtypeStruct((M, N), jnp.float32),
     jax.ShapeDtypeStruct((N,), jnp.float32),
-    jax.ShapeDtypeStruct((N,), jnp.float32),
+    jax.ShapeDtypeStruct((M,), jnp.float32),
 ]
 
-stablehlo_mvt = export.export(mvt)(*input_shapes).mlir_module()
-print(stablehlo_mvt)
+stablehlo_bicg = export.export(bicg)(*input_shapes).mlir_module()
+print(stablehlo_bicg)
 
 def generate_metadata(*args, func=None):
     args_meta = []
@@ -60,7 +58,4 @@ def generate_metadata(*args, func=None):
 
     return metadata
 
-generate_metadata(A, y1, y2, func=mvt)
-# x = mvt(A, x1, x2, y1, y2)
-# print(x)
-# print("Output shape:", x.shape)
+generate_metadata(A, p, r, func=bicg)
