@@ -230,6 +230,8 @@ def worker_jax(target, child_conn, close_fd_mask):
 
     import jax
     import jax.numpy as jnp
+    
+    from pyConvertUtils.utils import generate_stablehlo_and_export_metadata
 
     logging.captureWarnings(True)
     logging.getLogger().setLevel(logging.CRITICAL)

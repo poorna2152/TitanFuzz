@@ -1,6 +1,9 @@
 import jax
 import jax.numpy as jnp
 
+from pyConvertUtils.utils import generate_stablehlo_and_export_metadata
+
+
 def check_jax_state():
     """Simple function to check JAX state."""
     key = jax.random.PRNGKey(0)

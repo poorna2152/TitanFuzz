@@ -301,7 +301,7 @@ class SnippetInfill(ast.NodeTransformer):
             elif self.library == "tensorflow":
                 infill_code = "import tensorflow as tf\n"
             elif self.library == "jax":
-                infill_code = "import jax\n import jax.numpy as jnp\n"
+                infill_code = "import jax\n import jax.numpy as jnp\n from pyConvertUtils.utils import generate_stablehlo_and_export_metadata\n"
             infill_code += "import numpy as np\n"
             end_replace = random.randint(0, self.line_no - 1)
             start_replace = random.randint(0, end_replace)
@@ -340,7 +340,7 @@ class SnippetInfill(ast.NodeTransformer):
             elif self.library == "tensorflow":
                 infill_code = "import tensorflow as tf\n"
             elif self.library == "jax":
-                infill_code = "import jax\n import jax.numpy as jnp\n"
+                infill_code = "import jax\n import jax.numpy as jnp\n from pyConvertUtils.utils import generate_stablehlo_and_export_metadata\n"
             infill_code += "import numpy as np\n"
             end_replace = random.randint(0, self.line_no - 1)
             start_replace = random.randint(0, end_replace)

@@ -27,6 +27,8 @@ hasJax = True
 try:
     import jax
     import jax.numpy as jnp
+    from pyConvertUtils.utils import generate_stablehlo_and_export_metadata
+
 except Exception as e:
     hasJax = False
 
@@ -400,7 +402,7 @@ def wrap_code_with_device(g_code, library, device):
     if library == "torch":
         write_code += "import torch\n"
     elif library == "jax":
-        write_code += "import jax\nimport jax.numpy as jnp\n"
+        write_code += "import jax\nimport jax.numpy as jnp\nfrom pyConvertUtils.utils import generate_stablehlo_and_export_metadata\n"
     elif library == "tf":
         write_code += "import os\nos.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'\n"
         if device == "cpu":

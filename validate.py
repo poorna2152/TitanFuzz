@@ -11,6 +11,8 @@ import numpy as np
 import jax
 import jax.numpy as jnp
 
+from pyConvertUtils.utils import generate_stablehlo_and_export_metadata
+
 from mycoverage import mp_executor
 from util.util import (
     ExecutionStatus,
@@ -53,7 +55,8 @@ def validate_status_exec(g_code, library, device="gpu") -> Tuple[ExecutionStatus
         elif library == "jax":
             import jax
             import jax.numpy as jnp
-            execGlobals = {"jax": jax, "jnp": jnp, "np": np}
+            from pyConvertUtils.utils import generate_stablehlo_and_export_metadata
+            execGlobals = {"jax": jax, "jnp": jnp, "np": np, "generate_stablehlo_and_export_metadata": generate_stablehlo_and_export_metadata}
         else:
             import torch
             execGlobals = {"torch": torch, "np": np}
@@ -138,7 +141,7 @@ def validate(g_code, library):
         elif library == "tf":
             f.write("import tensorflow as tf\n")
         elif library == "jax":
-            f.write("import jax\n import jax.numpy as jnp\n")
+            f.write("import jax\n import jax.numpy as jnp\n from pyConvertUtils.utils import generate_stablehlo_and_export_metadata\n")
         f.write("import numpy as np\n")
         f.write(g_code)
     try:
