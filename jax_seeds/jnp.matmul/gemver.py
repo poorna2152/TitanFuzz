@@ -6,21 +6,6 @@ from jax._src.lib.mlir import ir
 import json
 from pathlib import Path
 
-# Matrix size
-N = 512
-
-# Initialize matrix and vectors
-key = jax.random.PRNGKey(0)
-A = jax.random.uniform(key, (N, N), dtype=jnp.float32)
-u1 = jax.random.uniform(key, (N,), dtype=jnp.float32)
-u2 = jax.random.uniform(key, (N,), dtype=jnp.float32)
-v1 = jax.random.uniform(key, (N,), dtype=jnp.float32)
-v2 = jax.random.uniform(key, (N,), dtype=jnp.float32)
-y = jax.random.uniform(key, (N,), dtype=jnp.float32)
-z = jax.random.uniform(key, (N,), dtype=jnp.float32)
-x = jnp.zeros((N,), dtype=jnp.float32)
-w = jnp.zeros((N,), dtype=jnp.float32)
-
 @jax.jit
 def gemver(A, u1, v1):
     """Gemver kernel with 3 arguments, y calculated inside."""
@@ -29,15 +14,6 @@ def gemver(A, u1, v1):
     y = jnp.ones(A.shape[0], dtype=A.dtype)
     x = jnp.matmul(A, y)
     return x
-
-input_shapes = [
-    jax.ShapeDtypeStruct((N, N), jnp.float32),
-    jax.ShapeDtypeStruct((N,), jnp.float32),
-    jax.ShapeDtypeStruct((N,), jnp.float32),
-]
-
-stablehlo_gemver = export.export(gemver)(*input_shapes).mlir_module()
-print(stablehlo_gemver)
 
 def generate_metadata(*args, func=None):
     args_meta = []
@@ -63,4 +39,28 @@ def generate_metadata(*args, func=None):
 
     return metadata
 
-generate_metadata(A, u1, v1, func=gemver)
+if __name__ == "__main__":
+    # Matrix size
+    N = 512
+
+    # Initialize matrix and vectors
+    key = jax.random.PRNGKey(0)
+    A = jax.random.uniform(key, (N, N), dtype=jnp.float32)
+    u1 = jax.random.uniform(key, (N,), dtype=jnp.float32)
+    u2 = jax.random.uniform(key, (N,), dtype=jnp.float32)
+    v1 = jax.random.uniform(key, (N,), dtype=jnp.float32)
+    v2 = jax.random.uniform(key, (N,), dtype=jnp.float32)
+    y = jax.random.uniform(key, (N,), dtype=jnp.float32)
+    z = jax.random.uniform(key, (N,), dtype=jnp.float32)
+    x = jnp.zeros((N,), dtype=jnp.float32)
+    w = jnp.zeros((N,), dtype=jnp.float32)
+
+    input_shapes = [
+        jax.ShapeDtypeStruct((N, N), jnp.float32),
+        jax.ShapeDtypeStruct((N,), jnp.float32),
+        jax.ShapeDtypeStruct((N,), jnp.float32),
+    ]
+
+    stablehlo_gemver = export.export(gemver)(*input_shapes).mlir_module()
+    print(stablehlo_gemver)
+    generate_metadata(A, u1, v1, func=gemver)

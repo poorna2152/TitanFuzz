@@ -11,7 +11,7 @@ NI, NJ, NK, NL = 512, 512, 512, 512
 A = jnp.arange(NI * NK, dtype=jnp.float32).reshape(NI, NK) / (NI * NK)
 B = jnp.arange(NK * NJ, dtype=jnp.float32).reshape(NK, NJ) / (NK * NJ)
 C = jnp.arange(NJ * NL, dtype=jnp.float32).reshape(NJ, NL) / (NJ * NL)
-    
+
 @jax.jit
 def two_mm(A, B, C):
     """Performs the 2mm kernel."""
@@ -20,15 +20,6 @@ def two_mm(A, B, C):
         tmp = jnp.matmul(A, B)
         D = jnp.matmul(tmp, C)
     return D
-
-input_shapes = [
-    jax.ShapeDtypeStruct((NI, NK), jnp.float32),
-    jax.ShapeDtypeStruct((NK, NJ), jnp.float32),
-    jax.ShapeDtypeStruct((NJ, NL), jnp.float32),
-]
-
-stablehlo_2mm = export.export(two_mm)(*input_shapes).mlir_module()
-print(stablehlo_2mm)
 
 def generate_metadata(*args, func=None):
     args_meta = []
@@ -55,4 +46,13 @@ def generate_metadata(*args, func=None):
 
     return metadata
 
-generate_metadata(A, B, C, func=two_mm)
+
+if __name__ == "__main__":
+    input_shapes = [
+        jax.ShapeDtypeStruct((NI, NK), jnp.float32),
+        jax.ShapeDtypeStruct((NK, NJ), jnp.float32),
+        jax.ShapeDtypeStruct((NJ, NL), jnp.float32),
+    ]
+    stablehlo_2mm = export.export(two_mm)(*input_shapes).mlir_module()
+    print(stablehlo_2mm)
+    generate_metadata(A, B, C, func=two_mm)

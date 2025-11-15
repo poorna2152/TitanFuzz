@@ -6,15 +6,6 @@ from jax._src.lib.mlir import ir
 import json
 from pathlib import Path
 
-# Matrix size
-N = 128
-
-# Initialize matrices
-key = jax.random.PRNGKey(0)
-A = jax.random.uniform(key, (N, N), dtype=jnp.float32)
-B = jax.random.uniform(key, (N, N), dtype=jnp.float32)
-alpha = 1.5
-
 @jax.jit
 def trmm(A, B):
     """Triangular matrix-multiply."""
@@ -23,15 +14,6 @@ def trmm(A, B):
     A_tri = jnp.tril(A)
     B = alpha * jnp.matmul(A_tri, B)
     return B
-
-# Export to StableHLO
-input_shapes = [
-    jax.ShapeDtypeStruct((N, N), jnp.float32),
-    jax.ShapeDtypeStruct((N, N), jnp.float32)
-]
-
-stablehlo_trmm = export.export(trmm)(*input_shapes).mlir_module()
-print(stablehlo_trmm)
 
 def generate_metadata(*args, func=None):
     args_meta = []
@@ -58,4 +40,22 @@ def generate_metadata(*args, func=None):
 
     return metadata
 
-generate_metadata(A, B, func=trmm)
+if __name__ == "__main__":
+    # Matrix size
+    N = 128
+
+    # Initialize matrices
+    key = jax.random.PRNGKey(0)
+    A = jax.random.uniform(key, (N, N), dtype=jnp.float32)
+    B = jax.random.uniform(key, (N, N), dtype=jnp.float32)
+    alpha = 1.5
+
+    # Export to StableHLO
+    input_shapes = [
+        jax.ShapeDtypeStruct((N, N), jnp.float32),
+        jax.ShapeDtypeStruct((N, N), jnp.float32)
+    ]
+
+    stablehlo_trmm = export.export(trmm)(*input_shapes).mlir_module()
+    print(stablehlo_trmm)
+    generate_metadata(A, B, func=trmm)

@@ -160,8 +160,8 @@ def clean_code(
     code = remove_tags(code)
     code = remove_skip_api(code)
     code = remove_seed_setting(code)
-    code = remove_empty_line(code)
-    code = remove_main(code)
+    # code = remove_empty_line(code)
+    # code = remove_main(code)
 
     if prints_and_imports:
         code = remove_prints_and_imports(code)

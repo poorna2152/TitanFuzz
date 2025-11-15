@@ -6,18 +6,6 @@ from jax._src.lib.mlir import ir
 import json
 from pathlib import Path
 
-# Matrix size
-N = 512
-
-# Initialize matrices and vectors
-key = jax.random.PRNGKey(0)
-A = jax.random.uniform(key, (N, N), dtype=jnp.float32)
-B = jax.random.uniform(key, (N, N), dtype=jnp.float32)
-x = jax.random.uniform(key, (N,), dtype=jnp.float32)
-y = jnp.zeros((N,), dtype=jnp.float32)
-alpha = 1.5
-beta = 1.2
-
 @jax.jit
 def gesummv(A, B, x):
     """Performs the gesummv kernel."""
@@ -25,16 +13,6 @@ def gesummv(A, B, x):
     beta = 1.2
     y = alpha * jnp.matmul(A, x) + beta * jnp.matmul(B, x)
     return y
-
-# Export to StableHLO
-input_shapes = [
-    jax.ShapeDtypeStruct((N, N), jnp.float32),
-    jax.ShapeDtypeStruct((N, N), jnp.float32),
-    jax.ShapeDtypeStruct((N,), jnp.float32)
-]
-
-stablehlo_gesummv = export.export(gesummv)(*input_shapes).mlir_module()
-print(stablehlo_gesummv)
 
 def generate_metadata(*args, func=None):
     args_meta = []
@@ -61,4 +39,26 @@ def generate_metadata(*args, func=None):
 
     return metadata
 
-generate_metadata(A, B, x, func=gesummv)
+if __name__ == "__main__":
+    # Matrix size
+    N = 512
+
+    # Initialize matrices and vectors
+    key = jax.random.PRNGKey(0)
+    A = jax.random.uniform(key, (N, N), dtype=jnp.float32)
+    B = jax.random.uniform(key, (N, N), dtype=jnp.float32)
+    x = jax.random.uniform(key, (N,), dtype=jnp.float32)
+    y = jnp.zeros((N,), dtype=jnp.float32)
+    alpha = 1.5
+    beta = 1.2
+
+    # Export to StableHLO
+    input_shapes = [
+        jax.ShapeDtypeStruct((N, N), jnp.float32),
+        jax.ShapeDtypeStruct((N, N), jnp.float32),
+        jax.ShapeDtypeStruct((N,), jnp.float32)
+    ]
+
+    stablehlo_gesummv = export.export(gesummv)(*input_shapes).mlir_module()
+    print(stablehlo_gesummv)
+    generate_metadata(A, B, x, func=gesummv)

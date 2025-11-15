@@ -16,31 +16,10 @@ def get_stablehlo_asm(module_str: str) -> str:
         stablehlo_module = ir.Module.parse(module_str, context=jax_mlir.make_ir_context())
         return stablehlo_module.operation.get_asm(large_elements_limit=20)
 
-
-# -----------------------------
-# Matrix Initialization
-# -----------------------------
-key = jax.random.PRNGKey(0)
-M, K, N = 512, 256, 128
-
-A = jax.random.uniform(key, (M, K), dtype=jnp.float32)
-B = jax.random.uniform(key, (K, N), dtype=jnp.float32)
-
 @jax.jit
 def gemm(A, B):
     C = jnp.matmul(A, B)
     return C
-
-# -----------------------------
-# Export to StableHLO
-# -----------------------------
-input_shapes = [
-    jax.ShapeDtypeStruct((M, K), jnp.float32),
-    jax.ShapeDtypeStruct((K, N), jnp.float32),
-]
-
-stablehlo_gemm = export.export(gemm)(*input_shapes).mlir_module()
-print(get_stablehlo_asm(stablehlo_gemm))
 
 def generate_metadata(*args, func=None):
     args_meta = []
@@ -67,4 +46,24 @@ def generate_metadata(*args, func=None):
 
     return metadata
 
-generate_metadata(A, B, func=gemm)
+if __name__ == "__main__":
+    # -----------------------------
+    # Matrix Initialization
+    # -----------------------------
+    key = jax.random.PRNGKey(0)
+    M, K, N = 512, 256, 128
+
+    A = jax.random.uniform(key, (M, K), dtype=jnp.float32)
+    B = jax.random.uniform(key, (K, N), dtype=jnp.float32)
+
+    # -----------------------------
+    # Export to StableHLO
+    # -----------------------------
+    input_shapes = [
+        jax.ShapeDtypeStruct((M, K), jnp.float32),
+        jax.ShapeDtypeStruct((K, N), jnp.float32),
+    ]
+
+    stablehlo_gemm = export.export(gemm)(*input_shapes).mlir_module()
+    print(get_stablehlo_asm(stablehlo_gemm))
+    generate_metadata(A, B, func=gemm)

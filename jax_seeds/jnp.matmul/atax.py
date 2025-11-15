@@ -55,4 +55,12 @@ def generate_metadata(*args, func=None):
 
     return metadata
 
-generate_metadata(A, x, func=atax)
+if __name__ == "__main__":
+    input_shapes = [
+        jax.ShapeDtypeStruct((M, N), jnp.float32),
+        jax.ShapeDtypeStruct((N,), jnp.float32),
+    ]
+
+    stablehlo_atax = export.export(atax)(*input_shapes).mlir_module()
+    print(stablehlo_atax)
+    generate_metadata(A, x, func=atax)

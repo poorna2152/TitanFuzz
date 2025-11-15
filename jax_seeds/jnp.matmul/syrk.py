@@ -6,16 +6,6 @@ from jax._src.lib.mlir import ir
 import json
 from pathlib import Path
 
-# Matrix size
-N, M = 512, 512
-
-# Initialize matrices
-key = jax.random.PRNGKey(0)
-A = jax.random.uniform(key, (N, M), dtype=jnp.float32)
-C = jax.random.uniform(key, (N, N), dtype=jnp.float32)
-alpha = 1.5
-beta = 1.2
-
 @jax.jit
 def syrk(A, C):
     """Performs the syrk kernel."""
@@ -23,15 +13,6 @@ def syrk(A, C):
     beta = 1.2
     C = alpha * jnp.matmul(A, A.T) + beta * C
     return C
-
-# Export to StableHLO
-input_shapes = [
-    jax.ShapeDtypeStruct((N, M), jnp.float32),
-    jax.ShapeDtypeStruct((N, N), jnp.float32)
-]
-
-stablehlo_syrk = export.export(syrk)(*input_shapes).mlir_module()
-print(stablehlo_syrk)
 
 def generate_metadata(*args, func=None):
     args_meta = []
@@ -58,4 +39,23 @@ def generate_metadata(*args, func=None):
 
     return metadata
 
-generate_metadata(A, C, func=syrk)
+if __name__ == "__main__":
+    # Matrix size
+    N, M = 512, 512
+
+    # Initialize matrices
+    key = jax.random.PRNGKey(0)
+    A = jax.random.uniform(key, (N, M), dtype=jnp.float32)
+    C = jax.random.uniform(key, (N, N), dtype=jnp.float32)
+    alpha = 1.5
+    beta = 1.2
+
+    # Export to StableHLO
+    input_shapes = [
+        jax.ShapeDtypeStruct((N, M), jnp.float32),
+        jax.ShapeDtypeStruct((N, N), jnp.float32)
+    ]
+
+    stablehlo_syrk = export.export(syrk)(*input_shapes).mlir_module()
+    print(stablehlo_syrk)
+    generate_metadata(A, C, func=syrk)
