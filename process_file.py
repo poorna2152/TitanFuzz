@@ -92,6 +92,7 @@ def clean_raw_code(original: str) -> str:
 def syntax_fix_remove_last_line(original):
     """Remove last line until syntax pass."""
     code = original
+    call_line = ""
     while len(code) > 0:
         syntax_error = False
         try:
@@ -102,10 +103,13 @@ def syntax_fix_remove_last_line(original):
         except Exception as e:  # if the snippet is not valid python Syntax
             syntax_error = True
         if syntax_error:
+            last_line = code.splitlines()[-1]
+            if ("generate_stablehlo_and_export_metadata(" in last_line):
+                call_line = last_line
             code = "\n".join(code.splitlines()[:-1])
         else:
-            return code
-    return code
+            return code + "\n" + call_line
+    return code + "\n" + call_line
 
 
 session_pattern1 = re.compile(r"with tf.compat.v1.Session()")

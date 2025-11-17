@@ -91,6 +91,13 @@ def generate_loop(
                 output = clean_code(
                     output, prints_and_imports=False, comment=True, cuda=True
                 )
+
+                call_count = output.count("generate_stablehlo_and_export_metadata(")
+                if call_count != 1:
+                    print(f"[SKIP] Output does not contain exactly one call to generate_stablehlo_and_export_metadata (found {call_count})")
+                    print("invalid output:\n", output)
+                    continue
+                
                 num_generated += 1
                 if output in total_outputs:
                     num_duplicated += 1
